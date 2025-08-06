@@ -1,0 +1,27 @@
+reservation_back/settings.py
+.env
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.log
+
+# Django
+*.sqlite3
+db.sqlite3
+
+# PostgreSQL
+pgdata/
+*.pgdata
+*.pg_dump
+
+# Env & config
+.env.*
+
+# IDEs
+.vscode/
+.idea/
+
+# Others
+*.bak
+*.swp
