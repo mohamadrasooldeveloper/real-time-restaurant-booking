@@ -77,10 +77,10 @@ function Header() {
   }, []);
 
   return (
-    <header style={{ padding: '1rem', background: '#eee' }}>
+    <header className='text-2xl text-center font-bold'>
       <nav>
         {user ? (
-          <span>سلام، {user.username}!</span>
+          <span className='text-green-600'>سلام، {user.username}!</span>
         ) : (
           <span>لطفاً وارد شوید</span>
         )}

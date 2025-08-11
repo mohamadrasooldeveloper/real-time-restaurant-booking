@@ -1,6 +1,7 @@
 'use client'
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { fetchWithAuth } from '@/components/utils/api'  // مسیر api.js را تنظیم کن
 
 export default function LoginPage() {
   const router = useRouter()
@@ -15,35 +16,34 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-     const loginRes = await fetch('http://localhost:8000/api/login/', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ username: name, password }),
-  credentials: 'include' 
-});
+      // لاگین ساده، چون توکن ها رو در اینجا دریافت می‌کنی
+      const loginRes = await fetch('http://localhost:8000/api/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: name, password }),
+      })
 
-if (!loginRes.ok) {
-  const data = await loginRes.json();
-  throw new Error(data.detail || "ورود ناموفق بود");
-}
-const loginData = await loginRes.json()
-localStorage.setItem('access_token', loginData.access)
-localStorage.setItem('refresh_token', loginData.refresh)
+      if (!loginRes.ok) {
+        const data = await loginRes.json();
+        throw new Error(data.detail || "ورود ناموفق بود");
+      }
 
-const meRes = await fetch('http://localhost:8000/api/me/', {
-  method: 'GET',
-  
-  credentials: 'include'
-});
+      const loginData = await loginRes.json()
+      localStorage.setItem('access_token', loginData.access)
+      localStorage.setItem('refresh_token', loginData.refresh)
 
-if (!meRes.ok) {
-  throw new Error("دریافت اطلاعات کاربر ناموفق بود");
-}
+      // حالا درخواست کاربر را با fetchWithAuth بفرست
+      const meRes = await fetchWithAuth('http://localhost:8000/api/me/', {
+        method: 'GET',
+      })
 
-const user = await meRes.json();
+      if (!meRes.ok) {
+        throw new Error("دریافت اطلاعات کاربر ناموفق بود");
+      }
 
+      const user = await meRes.json();
 
-      // مرحله ۳: هدایت بر اساس نقش
+      // هدایت بر اساس نقش
       if (user.role === "vendor") {
         router.push(`/dashboard/${user.id}`)
       } else if (user.role === "customer") {
@@ -69,7 +69,7 @@ const user = await meRes.json();
           value={name}
           onChange={(e) => setName(e.target.value)}
           type="text"
-          placeholder="نام کامل"
+          placeholder="نام کاربری"
           className="w-full border p-2 rounded"
           required
         />
