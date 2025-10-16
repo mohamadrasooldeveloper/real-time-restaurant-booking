@@ -1,7 +1,8 @@
 'use client'
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { fetchWithAuth } from '@/components/utils/api'  // مسیر api.js را تنظیم کن
+import api from "@/lib/apifetch"
+import { setTokens } from "@/lib/auth"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -16,34 +17,23 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      // لاگین ساده، چون توکن ها رو در اینجا دریافت می‌کنی
-      const loginRes = await fetch('http://localhost:8000/api/login/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: name, password }),
+      const loginRes = await api.post("/login/", {
+        username: name,
+        password,
       })
 
-      if (!loginRes.ok) {
-        const data = await loginRes.json();
-        throw new Error(data.detail || "ورود ناموفق بود");
+      const loginData = loginRes.data
+
+      if (!loginData.access || !loginData.refresh) {
+        throw new Error("ورود ناموفق بود")
       }
 
-      const loginData = await loginRes.json()
-      localStorage.setItem('access_token', loginData.access)
-      localStorage.setItem('refresh_token', loginData.refresh)
+      setTokens(loginData.access, loginData.refresh)
+      window.dispatchEvent(new Event('storage'))
 
-      // حالا درخواست کاربر را با fetchWithAuth بفرست
-      const meRes = await fetchWithAuth('http://localhost:8000/api/me/', {
-        method: 'GET',
-      })
+      const meRes = await api.get("/me/")
+      const user = meRes.data
 
-      if (!meRes.ok) {
-        throw new Error("دریافت اطلاعات کاربر ناموفق بود");
-      }
-
-      const user = await meRes.json();
-
-      // هدایت بر اساس نقش
       if (user.role === "vendor") {
         router.push(`/dashboard/${user.id}`)
       } else if (user.role === "customer") {
@@ -55,7 +45,8 @@ export default function LoginPage() {
       }
 
     } catch (err) {
-      setError(err.message || "خطای غیرمنتظره‌ای رخ داد")
+      console.error(err)
+      setError(err.response?.data?.detail || err.message || "خطای غیرمنتظره‌ای رخ داد")
     } finally {
       setLoading(false)
     }
@@ -76,7 +67,7 @@ export default function LoginPage() {
         <input
           type="password"
           placeholder="رمز عبور"
-          className="w-full border p-2"
+          className="w-full border p-2 rounded"
           value={password}
           onChange={e => setPassword(e.target.value)}
           required

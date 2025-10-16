@@ -1,4 +1,3 @@
-
 'use client'
 
 import RestaurantsPage from '@/components/RestaurantsPage'
