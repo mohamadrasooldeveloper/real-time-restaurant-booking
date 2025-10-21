@@ -1,46 +1,48 @@
 'use client'
-import { useEffect, useState } from 'react'
-import Pusher from 'pusher-js'
+import { useState } from 'react'
+import ReservationPanel from '@/components/reservation/ReservationPanel'
+import FoodPanel from '@/components/reservation/FoodPanel'
+import { Utensils, CalendarDays } from 'lucide-react'
 
-export default function ReservationPanel() {
-  const [reservations, setReservations] = useState([])
-
-  useEffect(() => {
-    const pusher = new Pusher('9512f63fb48eb46cb8fa', {
-      cluster: 'mt1',
-    })
-
-    console.log('📡 Subscribing to channel...')
-
-    const channel = pusher.subscribe('reservations')
-
-    channel.bind('new-reservation', function (data) {
-      console.log('📥 New reservation received:', data)
-      setReservations((prev) => [data, ...prev])
-    })
-
-    return () => {
-      channel.unbind_all()
-      channel.unsubscribe()
-    }
-  }, [])
+export default function TabsPanel() {
+  const [activeTab, setActiveTab] = useState('reservations')
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">رزروهای جدید</h2>
-      {reservations.length === 0 && <p>هیچ رزروی ثبت نشده است.</p>}
-      <ul>
-        {reservations.map((res, index) => (
-          <li key={index} className="border p-3 mb-3 rounded shadow">
-            <p><strong>نام:</strong> {res.name}</p>
-            <p><strong>تاریخ:</strong> {res.date}</p>
-            <p><strong>ساعت:</strong> {res.time}</p>
-            <p><strong>مهمان‌ها:</strong> {res.guests}</p>
-            <p><strong>شماره تماس:</strong> {res.phone}</p>
-            <p><strong>پیام:</strong> {res.message || 'ندارد'}</p>
-          </li>
-        ))}
-      </ul>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 p-6 transition-colors">
+      <div className="container mx-auto">
+        {/* تب‌های بالا */}
+        <div className="flex justify-center gap-4 mb-8">
+          <button
+            onClick={() => setActiveTab('reservations')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-full text-sm font-semibold transition-all ${
+              activeTab === 'reservations'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'bg-white/60 dark:bg-gray-800/40 text-gray-700 dark:text-gray-300 hover:bg-indigo-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            <CalendarDays className="w-4 h-4" />
+            رزروها
+          </button>
+
+          <button
+            onClick={() => setActiveTab('foods')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-full text-sm font-semibold transition-all ${
+              activeTab === 'foods'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'bg-white/60 dark:bg-gray-800/40 text-gray-700 dark:text-gray-300 hover:bg-indigo-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            <Utensils className="w-4 h-4" />
+            منوی غذا
+          </button>
+        </div>
+
+        {/* محتوای تب‌ها */}
+        <div className="bg-white/70 dark:bg-gray-800/40 backdrop-blur-lg rounded-2xl p-6 shadow-xl transition-all">
+          {activeTab === 'reservations' && <ReservationPanel />}
+          {activeTab === 'foods' && <FoodPanel />}
+        </div>
+      </div>
     </div>
   )
 }

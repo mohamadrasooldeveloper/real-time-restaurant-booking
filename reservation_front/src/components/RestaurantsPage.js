@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import DatePicker from "react-multi-date-picker"
 import persian from "react-date-object/calendars/persian"
 import persian_fa from "react-date-object/locales/persian_fa"
-
+import api from '@/lib/apifetch'
 export default function RestaurantsPage() {
   const [mounted, setMounted] = useState(false)
   const [restaurants, setRestaurants] = useState(null)
@@ -42,11 +42,7 @@ export default function RestaurantsPage() {
     }
 
     try {
-      const res = await fetch('http://localhost:8000/api/reservations/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const res = await api.post('/reservations/')
 
       if (res.ok) {
         alert('رزرو با موفقیت ثبت شد!')
@@ -60,112 +56,111 @@ export default function RestaurantsPage() {
       alert('خطا در ارتباط با سرور')
     }
   }
+useEffect(() => {
+  setMounted(true)
 
-  useEffect(() => {
-    setMounted(true)
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem('accessToken')
-        const res = await fetch('http://localhost:8000/api/restaurants-public/', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          credentials: 'include',
-        })
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const res = await api.get('/restaurants-public/', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
+      })
 
-        if (!res.ok) throw new Error('دریافت اطلاعات رستوران‌ها با خطا مواجه شد.')
+      setRestaurants(res.data)
 
-        const data = await res.json()
-        setRestaurants(data)
-      } catch (err) {
-        setError(err.message || 'خطای ناشناخته')
-      }
+    } catch (err) {
+      console.error('خطا در دریافت اطلاعات:', err)
+      setError(err.message || 'خطای ناشناخته')
     }
+  }
 
-    fetchData()
-  }, [])
+  fetchData()
+}, [])
+
+
+
 
   if (!mounted) return null
   if (error) return <div className="text-center p-8 text-red-500">خطا: {error}</div>
   if (!restaurants) return <div className="text-center p-8">در حال بارگذاری...</div>
   if (restaurants.length === 0) return <div className="text-center p-8">رستورانی یافت نشد.</div>
 
+  const inputClass = `w-full border border-gray-300 dark:border-gray-700 p-3 rounded-xl
+                      placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none 
+                      focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-500
+                      focus:scale-[1.02] focus:shadow-lg transition-all
+                      bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100`
   return (
     <div className="container mx-auto p-4 space-y-8">
-      <h1 className="text-3xl font-bold text-center mb-6">رستوران‌ها</h1>
-
+      <h1 className="text-3xl font-extrabold mb-6 bg-gradient-to-r from-indigo-600 to-indigo-400 text-transparent bg-clip-text text-center">
+        رستوران‌ها
+      </h1>
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full'>
       {restaurants.map((rest) => (
-        <div key={rest.id} className="border rounded-lg p-4 shadow flex flex-col md:flex-row gap-4">
+        <div key={rest.id} className="border-[2px] border-indigo-400 rounded-lg shadow-lg bg-white dark:bg-gray-800 transition-all hover:scale-[1.02] hover:shadow-2xl">
           {rest.image && (
             <img
               src={rest.image}
               alt={rest.name}
-              className="w-full md:w-1/3 h-48 object-cover rounded"
+              className="w-full h-100 object-cover rounded-lg transition-all"
               loading="lazy"
             />
           )}
 
-          <div className="flex-1 flex flex-col gap-2">
-            <h2 className="text-xl font-bold">{rest.name}</h2>
-            <p className="text-gray-600">{rest.description}</p>
+          <div className="flex flex-col p-4 gap-4">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{rest.name}</h2>
+            <p className="text-gray-600 dark:text-gray-300">{rest.description}</p>
 
-            <h3 className="font-semibold">منو:</h3>
-            {rest.foods.length > 0 ? (
-              <ul className="list-disc pr-4 space-y-1">
-                {rest.foods.map((food) => (
-                  <li key={food.id}>
-                    {food.name} : {Number(food.discounted_price).toLocaleString('fa-IR')} تومان
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500">منویی برای این رستوران ثبت نشده.</p>
-            )}
-
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => {
                   setSelectedRestaurant(rest)
                   setShowModal(true)
                 }}
-                className="bg-green-600 cursor-pointer hover:bg-green-700 text-white rounded px-3 py-1"
+                className="bg-green-600 cursor-pointer hover:bg-green-700 text-white font-semibold rounded-lg px-5 py-2 transition-all"
               >
                 رزرو میز
               </button>
-              <a href={`/restaurants/${rest.id}`} className="bg-blue-500 hover:bg-blue-600 text-white rounded px-3 py-1">
+              <a
+                href={`/restaurants/${rest.id}`}
+                className="bg-blue-600 cursor-pointer hover:bg-blue-700 text-white font-semibold rounded-lg px-5 py-2 transition-all"
+              >
                 مشاهده منو
               </a>
             </div>
           </div>
         </div>
       ))}
-
+</div>
       {showModal && selectedRestaurant && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md relative">
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-2 left-2 text-gray-500 hover:text-red-500 text-lg"
             >
               ×
             </button>
-            <h2 className="text-xl font-bold mb-4 text-center">
+            <h2 className="text-xl font-extrabold mb-4 text-center text-gray-800 dark:text-white">
               رزرو میز در "{selectedRestaurant.name}"
             </h2>
 
-            <form onSubmit={handleReserveSubmit} className="space-y-4 w-full">
+            <form onSubmit={handleReserveSubmit} className="space-y-5 w-full">
               <DatePicker
                 value={value}
                 onChange={setValue}
                 calendar={persian}
                 locale={persian_fa}
                 containerClassName="w-full"
-                inputClass="w-full border p-2 rounded"
+                inputClass={inputClass}
                 placeholder="تاریخ رزرو"
               />
               <input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full border p-2 rounded"
+                className={inputClass}
                 required
               />
               <input
@@ -174,7 +169,7 @@ export default function RestaurantsPage() {
                 max="20"
                 value={guests}
                 onChange={(e) => setGuests(Number(e.target.value))}
-                className="w-full border p-2 rounded"
+                className={inputClass}
                 placeholder="تعداد مهمانان"
                 required
               />
@@ -182,7 +177,7 @@ export default function RestaurantsPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border p-2 rounded"
+                className={inputClass}
                 placeholder="نام کامل"
                 required
               />
@@ -190,19 +185,19 @@ export default function RestaurantsPage() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full border p-2 rounded"
+                className={inputClass}
                 placeholder="شماره تماس"
                 required
               />
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="w-full border p-2 rounded"
+                className={inputClass}
                 placeholder="درخواست خاص (اختیاری)"
               />
               <button
                 type="submit"
-                className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+                className="w-full bg-green-600 text-white py-3 px-4 rounded-xl hover:bg-green-700 transition-all"
               >
                 ثبت رزرو
               </button>

@@ -7,7 +7,7 @@ export default function ReservePage() {
 
 
   return (
-    <div className='container mx-auto'>
+    <div className='container mx-auto '>
       <Header />
       <RestaurantsPage />
       </div>
