@@ -1,6 +1,7 @@
 import Navbar from "@/components/Header";
 import "./globals.css";
 import { ThemeProvider } from '@/components/context/ThemeContext';
+import { Toaster } from 'react-hot-toast'
 
 export const metadata = {
   title: 'پنل رستوران',
@@ -18,6 +19,17 @@ export default function RootLayout({ children }) {
           
             <Navbar />
             {children}
+            <Toaster 
+          position="top-center"
+          toastOptions={{
+            style: {
+              fontFamily: "Vazirmatn, sans-serif",
+              borderRadius: "10px",
+              background: "#333",
+              color: "#fff",
+            },
+          }}
+        />
         </ThemeProvider>
       </body>
     </html>

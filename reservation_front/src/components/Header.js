@@ -12,14 +12,12 @@ export default function Navbar() {
   const [isDark, setIsDark] = useState(false)
 
   useEffect(() => {
-    // بررسی تم ذخیره‌شده در localStorage
     const savedTheme = localStorage.getItem('theme')
     if (savedTheme === 'dark') {
       document.documentElement.classList.add('dark')
       setIsDark(true)
     }
 
-    // بررسی ورود کاربر
     const token = getAccessToken()
     setIsLoggedIn(!!token)
     setAuthChecked(true)
@@ -87,22 +85,14 @@ export default function Navbar() {
             )}
           </button>
 
-          {/* ورود / خروج */}
+          {/* دکمه ورود/ثبت‌نام یا خروج */}
           {!isLoggedIn ? (
-            <>
-              <button
-                onClick={() => router.push('/login')}
-                className="px-4 cursor-pointer py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition"
-              >
-                ورود
-              </button>
-              <button
-                onClick={() => router.push('/register')}
-                className="px-4 cursor-pointer py-2 rounded-xl bg-green-600 text-white hover:bg-green-700 transition"
-              >
-                ثبت‌نام
-              </button>
-            </>
+            <button
+              onClick={() => router.push('/login')}
+              className="px-4 cursor-pointer py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition"
+            >
+              ورود / ثبت‌نام
+            </button>
           ) : (
             <button
               onClick={handleLogout}
