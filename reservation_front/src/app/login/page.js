@@ -40,7 +40,7 @@ export default function LoginPage() {
       setTokens(access, refresh)
       window.dispatchEvent(new Event("storage"))
 
-      toast.success("🎉 ورود موفقیت‌آمیز بود!", {
+      toast.success(" ورود موفقیت‌آمیز بود!", {
         style: { background: "#16a34a", color: "#fff" },
       })
 
@@ -54,14 +54,14 @@ export default function LoginPage() {
 
     } catch (err) {
       console.error(err)
-      const msg = err.response?.data?.detail || "خطای ناشناخته‌ای رخ داده است."
+      const msg = err.response?.data?.detail || "خطایی رخ داد. لطفاً دوباره تلاش کنید."
 
       if (err.response?.status === 404) {
-        toast.error("🚫 کاربری با این نام وجود ندارد، لطفاً ابتدا ثبت‌نام کنید.", {
+        toast.error(" کاربری با این نام وجود ندارد، لطفاً ابتدا ثبت‌نام کنید.", {
           style: { background: "#f87171", color: "#fff" },
         })
       } else if (err.response?.status === 401) {
-        toast.error("🔐 رمز عبور اشتباه است!", {
+        toast.error(" رمز عبور اشتباه است!", {
           style: { background: "#facc15", color: "#000" },
         })
       } else {

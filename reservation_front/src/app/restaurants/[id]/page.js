@@ -1,4 +1,3 @@
-// app/restaurants/[id]/page.js
 import RestaurantMenuPage from './RestaurantMenuPage'
 
 export default function Page({ params }) {

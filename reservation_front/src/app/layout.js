@@ -1,6 +1,7 @@
 import Navbar from "@/components/Header";
 import "./globals.css";
 import { ThemeProvider } from '@/components/context/ThemeContext';
+import { CartProvider } from "@/components/context/CartContext";
 import { Toaster } from 'react-hot-toast'
 
 export const metadata = {
@@ -16,7 +17,7 @@ export default function RootLayout({ children }) {
         suppressHydrationWarning
       >
         <ThemeProvider>
-          
+          <CartProvider>
             <Navbar />
             {children}
             <Toaster 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
             },
           }}
         />
+        </CartProvider>
         </ThemeProvider>
       </body>
     </html>

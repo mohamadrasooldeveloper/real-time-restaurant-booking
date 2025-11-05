@@ -43,7 +43,7 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       const res = await api.post("/register/", data)
-      alert("ثبت‌نام با موفقیت انجام شد 🎉")
+      alert("ثبت‌نام با موفقیت انجام شد ")
 
       if (data.role === "vendor") {
         router.push("/restaurant-settings")

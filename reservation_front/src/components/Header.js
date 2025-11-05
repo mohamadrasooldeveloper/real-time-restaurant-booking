@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clearTokens, getAccessToken } from '@/lib/auth'
-import { Sun, Moon } from 'lucide-react'
-
+import { Sun, Moon, Store, ShoppingBag,ShoppingCart } from 'lucide-react'
+import { useCart } from './context/CartContext'
 export default function Navbar() {
   const router = useRouter()
   const [authChecked, setAuthChecked] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isDark, setIsDark] = useState(false)
-
+  const { cart } = useCart()
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme')
     if (savedTheme === 'dark') {
@@ -72,6 +72,15 @@ export default function Navbar() {
 
         {/* دکمه‌ها */}
         <div className="flex items-center gap-3">
+    <div className="relative cursor-pointer" onClick={() => router.push('/cart')}>
+  <ShoppingCart className="w-7 h-7 text-indigo-500 dark:text-indigo-400" />
+  {cart.length > 0 && (
+    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+      {cart.length}
+    </span>
+  )}
+</div>
+
           {/* تم */}
           <button
             onClick={toggleTheme}

@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react'
 import api from '@/lib/apifetch'
 import { Plus } from 'lucide-react'
+import { useCart } from '@/components/context/CartContext'
 export default function RestaurantMenuPage({ restaurantId }) {
   const [restaurant, setRestaurant] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
-
+  const { cart, addToCart } = useCart()
   useEffect(() => {
     async function fetchRestaurant() {
       try {
@@ -93,7 +94,10 @@ export default function RestaurantMenuPage({ restaurantId }) {
     </span>
   )}
   
-  <button className="bg-indigo-600 cursor-pointer text-white rounded-lg py-2 px-6 md:px-8 w-full md:w-auto hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 mt-4 md:mt-0">
+   <button
+    onClick={() => addToCart(food)}
+    className="bg-indigo-600 cursor-pointer text-white rounded-lg py-2 px-6 md:px-8 w-full md:w-auto hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 mt-4 md:mt-0"
+  >
     <Plus className="h-5 w-5" />
     افزودن
   </button>
