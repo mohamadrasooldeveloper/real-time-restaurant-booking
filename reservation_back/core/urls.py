@@ -8,7 +8,12 @@ from .views import (
     LoginView,
     LogoutView,
     UserMeView,
-    RestaurantListWithFoodsView
+    RestaurantListWithFoodsView,
+    CartView,
+    AddToCartView,
+    RemoveFromCartView,
+    DecrementCartItemView,
+    CheckoutView
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -23,6 +28,12 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='user-register'),
     path('login/', LoginView.as_view(), name='user-login'),
     path('logout/', LogoutView.as_view(), name='user-logout'),
-    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # این خط رو اضافه کن
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('me/', UserMeView.as_view(), name='user-me'),
+    path('cart/', CartView.as_view(), name='cart'),
+    path('cart/add/', AddToCartView.as_view(), name='add-to-cart'),
+    path('cart/decrement/', DecrementCartItemView.as_view(), name='decrement-cart'),
+    path('cart/remove/', RemoveFromCartView.as_view(), name='remove-from-cart'),
+    path('orders/<uuid:uuid>/checkout/', CheckoutView.as_view(), name='order_checkout'),
+
 ]

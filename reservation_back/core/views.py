@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, generics
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
@@ -10,16 +10,16 @@ from .serializers import (
     FoodSerializer,
     OrderSerializer,
     UserRegisterSerializer,
-    UserLoginSerializer
+    UserLoginSerializer,
+    CartItemSerializer,
+    CartSerializer,
+    CheckoutSerializer
 )
-from .models import Restaurant, Food, Order
-
+from .models import Restaurant, Food, Order,Cart, CartItem
+from rest_framework.permissions import IsAuthenticated
 User = get_user_model()
+from .services.cart_service import *
 
-
-# -----------------------------
-# پرمیژن سفارشی فروشنده یا ادمین
-# -----------------------------
 class IsVendorOrAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         return (
@@ -32,24 +32,16 @@ class IsVendorOrAdmin(permissions.BasePermission):
             return True
         return getattr(obj, 'owner', None) == request.user
 
-
-# -----------------------------
-# ابزار تنظیم کوکی امن
-# -----------------------------
 def set_cookie(response, key, value, max_age):
     response.set_cookie(
         key,
         value,
         max_age=max_age,
         httponly=True,
-        samesite='Lax',  # یا 'Strict'
-        secure=False     # در پروداکشن True کن (HTTPS)
+        samesite='Lax', 
+        secure=False     
     )
 
-
-# -----------------------------
-# Register View
-# -----------------------------
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -70,11 +62,6 @@ class RegisterView(APIView):
             return response
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-# -----------------------------
-# Login View
-# -----------------------------
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -112,11 +99,6 @@ class LoginView(APIView):
             {"detail": "رمز عبور اشتباه است."},
             status=status.HTTP_401_UNAUTHORIZED
         )
-
-
-# -----------------------------
-# Logout View
-# -----------------------------
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -135,10 +117,6 @@ class LogoutView(APIView):
         response.delete_cookie('refresh_token')
         return response
 
-
-# -----------------------------
-# UserMeView — اطلاعات کاربر
-# -----------------------------
 class UserMeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -180,11 +158,6 @@ class UserMeView(APIView):
 
         return Response(data, status=status.HTTP_200_OK)
 
-
-
-# -----------------------------
-# Refresh Token View
-# -----------------------------
 class RefreshTokenView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -201,9 +174,6 @@ class RefreshTokenView(APIView):
             return Response({'detail': 'توکن Refresh نامعتبر است.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# -----------------------------
-# RestaurantViewSet
-# -----------------------------
 class RestaurantViewSet(viewsets.ModelViewSet):
     serializer_class = RestaurantSerializer
     permission_classes = [IsVendorOrAdmin]
@@ -223,10 +193,6 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
-
-# -----------------------------
-# FoodViewSet
-# -----------------------------
 class FoodViewSet(viewsets.ModelViewSet):
     serializer_class = FoodSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsVendorOrAdmin]
@@ -234,25 +200,97 @@ class FoodViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated:
+            # کاربران مهمان همه غذاها را می‌بینند
             return Food.objects.all()
 
         if user.role == 'vendor':
-            return Food.objects.filter(resturant__owner=user)
+            # فقط غذاهای رستوران خود فروشنده
+            return Food.objects.filter(restaurant__owner=user)
         elif user.role == 'admin':
+            # مدیر همه غذاها را می‌بیند
             return Food.objects.all()
         else:
+            # مشتری‌ها همه غذاها را می‌بینند
             return Food.objects.all()
 
     def perform_create(self, serializer):
-        restaurant = serializer.validated_data.get('resturant')
-        if self.request.user.role == 'vendor' and restaurant.owner != self.request.user:
-            raise PermissionDenied("شما اجازه افزودن غذا به این رستوران را ندارید.")
-        serializer.save()
+        user = self.request.user
+        if user.role == 'vendor':
+            # غذا به رستوران فروشنده خودش مرتبط می‌شود
+            restaurant = Restaurant.objects.filter(owner=user).first()
+            if not restaurant:
+                raise PermissionDenied("شما هنوز رستورانی ثبت نکرده‌اید.")
+            serializer.save(restaurant=restaurant)
+        elif user.role == 'admin':
+            # مدیر می‌تواند غذا ایجاد کند اما باید رستوران را مشخص کند
+            serializer.save()
+        else:
+            raise PermissionDenied("شما اجازه اضافه کردن غذا را ندارید.")
 
 
-# -----------------------------
-# OrderViewSet
-# -----------------------------
+class CartView(generics.RetrieveAPIView):
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        cart, _ = Cart.objects.get_or_create(user=self.request.user)
+
+        return cart
+
+
+
+class AddToCartView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CartSerializer
+
+    def create(self, request, *args, **kwargs):
+        try:
+            cart = add_to_cart(request.user, request.data.get("food_id"), int(request.data.get("quantity", 1)))
+            return Response(CartSerializer(cart).data, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return Response({'error': 'خطا در افزودن به سبد خرید'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RemoveFromCartView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CartSerializer
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            cart = remove_from_cart(request.user, request.data.get("food_id"))
+            return Response(CartSerializer(cart).data, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DecrementCartItemView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CartSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            cart = decrement_item(request.user, request.data.get("food_id"))
+            return Response(CartSerializer(cart).data, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class CheckoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, uuid):
+        try:
+            order = Order.objects.get(uuid=uuid, user=request.user, status='pending')
+        except Order.DoesNotExist:
+            return Response({'detail': 'سفارش یافت نشد یا قابل پرداخت نیست.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = CheckoutSerializer(order, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'detail': 'اطلاعات سفارش ثبت شد.', 'order_uuid': str(order.uuid)})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -271,10 +309,6 @@ class OrderViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
-# -----------------------------
-# RestaurantListWithFoodsView
-# -----------------------------
 class RestaurantListWithFoodsView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -283,10 +317,6 @@ class RestaurantListWithFoodsView(APIView):
         serializer = RestaurantSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
-
-# -----------------------------
-# MeView (برای دیباگ و تست)
-# -----------------------------
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
